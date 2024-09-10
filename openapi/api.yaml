@@ -1,0 +1,264 @@
+openapi: 3.0.3
+info:
+  title: Secret Gift Exchange
+  description: Simple API to exchange gifts between family members
+  version: 1.0.0
+paths:
+
+  /members:
+    get:
+      summary: Get list of members in the family
+      tags:
+        - members
+      responses:
+        '200':
+          $ref: '#/components/responses/members'
+    post:
+      summary: Create a family member.
+      tags:
+        - members
+      requestBody:
+        $ref: '#/components/requestBodies/memberAdd'
+      responses:
+        '201':
+          $ref: '#/components/responses/member'
+        '400':
+          $ref: '#/components/responses/badRequest'
+        '409':
+          $ref: '#/components/responses/conflictResponse'
+
+  /members/{id}:
+    get:
+      summary: Get a family member by id
+      tags:
+        - members
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          $ref: '#/components/responses/member'
+
+    put:
+      summary: Update a family member by id
+      tags:
+        - members
+      parameters:
+        - $ref: '#/components/parameters/id'
+      requestBody:
+        $ref: '#/components/requestBodies/memberUpdate'
+      responses:
+        '200':
+          $ref: '#/components/responses/member'
+
+    delete:
+      summary: Delete a family member
+      tags:
+        - members
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '204':
+          description: Family member was deleted.
+
+  /gift_exchange:
+    get:
+      summary: list members along with the member id they will be gifting to
+      tags:
+        - gift_exchange
+      responses:
+        '200':
+          $ref: '#/components/responses/giftExchanges'
+
+    post:
+      summary: performe a gift exchange in the family along with shuffling
+      tags:
+        - gift_exchange
+      responses:
+        '200':
+          $ref: '#/components/responses/giftExchanges'
+
+components:
+
+  requestBodies:
+    memberAdd:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MemberAddOrUpdate'
+
+    memberUpdate:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MemberAddOrUpdate'
+  responses:
+    conflictResponse:
+      description: The requested resource has a conflict.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemOfProblems'
+
+    member:
+      description: The Family member.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Member'
+
+    giftExchanges:
+      description: The Gift exchange details.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GiftExchanges'
+
+    members:
+      description: Profiles.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Members'
+
+    notFoundResponse:
+      description: The requested resource was not found.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemOfProblems'
+
+    badRequest:
+      description: Invalid request. Further information in the property 'detail' of the response.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemOfProblems'
+
+    defaultProblemOfProblemsResponse:
+      description: General error responses.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemOfProblems'
+
+  parameters:
+    id:
+      name: id
+      in: path
+      description: The family member id.
+      example: 1234
+      required: true
+      schema:
+        type: string
+
+  schemas:
+    Member:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          description:  id of this family member.
+          example: d46eb5bb-13b9-441d-b280-1e5053705144
+        name:
+          type: string
+          description: name of family member
+          example: John Doe
+
+    Members:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          description: List of member.
+          items:
+            $ref: '#/components/schemas/Member'
+        cursor:
+          $ref: '#/components/schemas/Cursor'
+
+    MemberAddOrUpdate:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Create a new profile with given name
+          example: Alice
+
+    GiftExchanges:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          description: list of gift exchanges
+          items:
+            $ref: '#/components/schemas/GiftExchange'
+        cursor:
+          $ref: '#/components/schemas/Cursor'
+
+    GiftExchange:
+      type: object
+      required:
+        - member_id
+        - recipient_member_id
+      properties:
+        member_id:
+          type: string
+          description: Gift giver
+        recipient_member_id:
+          type: string
+          description: Give receiver
+
+    Cursor:
+      type: object
+      description: The representation of a cursor for fetching paginated list of orders for deletion.
+      properties:
+        next:
+          description: The cursor pointer for the next data to be fetched.
+          type: string
+          example: 564v5n345n3653
+
+    ProblemOfProblems:
+      description: |
+        A problem object that can contain one or more nested problems.
+      allOf:
+        - $ref: 'https://opensource.zalando.com/restful-api-guidelines/problem-1.0.1.yaml#/Problem'
+        - type: object
+          properties:
+            problems:
+              $ref: '#/components/schemas/Problems'
+
+    Problems:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubProblem'
+      required:
+        - items
+
+    SubProblem:
+      allOf:
+        - $ref: 'https://opensource.zalando.com/restful-api-guidelines/problem-1.0.1.yaml#/Problem'
+        - type: object
+          properties:
+            type_code:
+              type: string
+            localised_detail:
+              type: string
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
