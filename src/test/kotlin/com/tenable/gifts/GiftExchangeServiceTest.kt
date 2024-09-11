@@ -2,9 +2,11 @@ package com.tenable.gifts
 
 import com.tenable.gifts.dao.GiftAssignment
 import com.tenable.gifts.dao.Participant
+import com.tenable.gifts.exceptions.NoValidReceiverFoundException
+import com.tenable.gifts.exceptions.NotEnoughParticipantsException
 import com.tenable.gifts.repository.GiftAssignmentRepository
 import com.tenable.gifts.repository.ParticipantRepository
-import com.tenable.gifts.service.SecretSantaService
+import com.tenable.gifts.service.GiftExchangeService
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -18,9 +20,9 @@ import java.time.Year
 import kotlin.random.Random
 
 @SpringBootTest
-class SecretSantaServiceTest {
+class GiftExchangeServiceTest {
 
-    private lateinit var secretSantaService: SecretSantaService
+    private lateinit var giftExchangeService: GiftExchangeService
     private lateinit var participantRepository: ParticipantRepository
     private lateinit var giftAssignmentRepository: GiftAssignmentRepository
 
@@ -28,7 +30,7 @@ class SecretSantaServiceTest {
     fun setup() {
         participantRepository = mockk()
         giftAssignmentRepository = mockk()
-        secretSantaService = SecretSantaService(participantRepository, giftAssignmentRepository)
+        giftExchangeService = GiftExchangeService(participantRepository, giftAssignmentRepository)
     }
 
     @Test
@@ -44,7 +46,7 @@ class SecretSantaServiceTest {
         every { giftAssignmentRepository.save(any()) } returns mockk()
 
         val random = Random(42)
-        val assignments = secretSantaService.drawNames(random)
+        val assignments = giftExchangeService.drawNames(random)
 
         // Assert each participant is a giver exactly once
         assertEquals(participants.size, assignments.size)
@@ -77,15 +79,35 @@ class SecretSantaServiceTest {
         )
 
         every { participantRepository.findAll() } returns participants
-        every { giftAssignmentRepository.findByGiverAndYearGreaterThan(participants[0], Year.now().value - 3) } returns listOf(pastAssignment)
-        every { giftAssignmentRepository.findByGiverAndYearGreaterThan(participants[1], Year.now().value - 3) } returns emptyList()
-        every { giftAssignmentRepository.findByGiverAndYearGreaterThan(participants[2], Year.now().value - 3) } returns emptyList()
-        every { giftAssignmentRepository.findByGiverAndYearGreaterThan(participants[3], Year.now().value - 3) } returns emptyList()
+        every {
+            giftAssignmentRepository.findByGiverAndYearGreaterThan(
+                participants[0],
+                Year.now().value - 3
+            )
+        } returns listOf(pastAssignment)
+        every {
+            giftAssignmentRepository.findByGiverAndYearGreaterThan(
+                participants[1],
+                Year.now().value - 3
+            )
+        } returns emptyList()
+        every {
+            giftAssignmentRepository.findByGiverAndYearGreaterThan(
+                participants[2],
+                Year.now().value - 3
+            )
+        } returns emptyList()
+        every {
+            giftAssignmentRepository.findByGiverAndYearGreaterThan(
+                participants[3],
+                Year.now().value - 3
+            )
+        } returns emptyList()
         every { giftAssignmentRepository.save(any()) } returns mockk()
 
         val random = Random(42)
 
-        val assignments = secretSantaService.drawNames(random)
+        val assignments = giftExchangeService.drawNames(random)
 
         // Verify that Alice did not get Bob as a receiver
         assertNotEquals(participants[1], assignments[participants[0]], "Alice should not be assigned to Bob")
@@ -97,11 +119,11 @@ class SecretSantaServiceTest {
 
         every { participantRepository.findAll() } returns participants
 
-        val exception = assertThrows(IllegalStateException::class.java) {
-            secretSantaService.drawNames()
+        val exception = assertThrows(NotEnoughParticipantsException::class.java) {
+            giftExchangeService.drawNames()
         }
 
-        assertEquals("Not enough participants to draw names", exception.message)
+        assertEquals("Not enough participants to perform gift-exchange, please add more members!", exception.message)
     }
 
     @Test
@@ -118,15 +140,19 @@ class SecretSantaServiceTest {
         val pastAssignment3 = GiftAssignment(null, participants[2], participants[0], Year.now().value - 1)
 
         every { participantRepository.findAll() } returns participants
-        every { giftAssignmentRepository.findByGiverAndYearGreaterThan(any(), any()) } returns listOf(pastAssignment1, pastAssignment2, pastAssignment3)
+        every { giftAssignmentRepository.findByGiverAndYearGreaterThan(any(), any()) } returns listOf(
+            pastAssignment1,
+            pastAssignment2,
+            pastAssignment3
+        )
         every { giftAssignmentRepository.save(any()) } returns mockk()
 
         val random = Random(42)
-        val exception = assertThrows(IllegalStateException::class.java) {
-            secretSantaService.drawNames(random)
+        val exception = assertThrows(NoValidReceiverFoundException::class.java) {
+            giftExchangeService.drawNames(random)
         }
 
-        assertThat(exception.message, containsString("Unable to assign a valid receiver"))
+        assertThat(exception.message, containsString("Unable to assign a valid gift-recipient"))
     }
 
     @Test
@@ -142,9 +168,29 @@ class SecretSantaServiceTest {
         every { giftAssignmentRepository.save(any()) } returns mockk()
 
         val random = Random(42)
-        secretSantaService.drawNames(random)
+        giftExchangeService.drawNames(random)
 
         // Verify that the save method was called for each participant
         verify(exactly = participants.size) { giftAssignmentRepository.save(any()) }
+    }
+
+    @Test
+    fun `getAllGiftExchanges should return a list of gift exchanges`() {
+        // Given
+        val giftExchanges = listOf(
+            GiftAssignment(1L, Participant(id = 1L, name = "John"), Participant(id = 2L, name = "Alice"), 2023),
+            GiftAssignment(2L, Participant(id = 3L, name = "Bob"), Participant(id = 4L, name = "Charlie"), 2023)
+        )
+
+        every { giftAssignmentRepository.findAll() } returns giftExchanges
+
+        // When
+        val result = giftExchangeService.getAllGiftExchanges()
+
+        // Then
+        verify(exactly = 1) { giftAssignmentRepository.findAll() }
+        assertEquals(giftExchanges.size, result.size)
+        assertEquals(giftExchanges.map { it.giver.id.toString() }, result.map { it.memberId })
+        assertEquals(giftExchanges.map { it.receiver.id.toString() }, result.map { it.recipientMemberId })
     }
 }

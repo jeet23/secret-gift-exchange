@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository
 
 @Repository
 interface GiftAssignmentRepository : JpaRepository<GiftAssignment, Long> {
-    // Find if the giver assigned a gift to a specific receiver within the last 3 years
+    // Find if a participant has given a gift within the last 3 years
     fun findByGiverAndYearGreaterThan(
         giver: Participant,
         year: Int

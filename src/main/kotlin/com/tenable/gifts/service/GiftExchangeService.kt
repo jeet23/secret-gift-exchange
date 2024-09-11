@@ -4,6 +4,9 @@ import com.tenable.generated.fabrikt.models.GiftExchange
 import com.tenable.generated.fabrikt.models.Member
 import com.tenable.gifts.dao.GiftAssignment
 import com.tenable.gifts.dao.Participant
+import com.tenable.gifts.exceptions.MemberNotFoundException
+import com.tenable.gifts.exceptions.NoValidReceiverFoundException
+import com.tenable.gifts.exceptions.NotEnoughParticipantsException
 import com.tenable.gifts.repository.GiftAssignmentRepository
 import com.tenable.gifts.repository.ParticipantRepository
 import jakarta.transaction.Transactional
@@ -13,7 +16,7 @@ import java.util.Optional
 import kotlin.random.Random
 
 @Service
-class SecretSantaService(
+class GiftExchangeService(
     val participantRepository: ParticipantRepository,
     val giftAssignmentRepository: GiftAssignmentRepository
 ) {
@@ -26,8 +29,8 @@ class SecretSantaService(
     fun updateParticipant(id: Long, update: Participant): Member? {
         val existingParticipant = participantRepository.findById(id)
         if (existingParticipant.isEmpty)
-            return null
-        val updatedParticipant = existingParticipant.get().copy(name = update.name, email = update.email)
+            throw MemberNotFoundException("Member with id = $id not found")
+        val updatedParticipant = existingParticipant.get().copy(name = update.name)
         val member = participantRepository.save(updatedParticipant)
         return Member(member.id.toString(), member.name)
     }
@@ -37,7 +40,11 @@ class SecretSantaService(
     }
 
     fun getParticipant(id: Long): Optional<Member> {
-        return participantRepository.findById(id).map { Member(it.id.toString(), it.name) }
+        val maybeMember = participantRepository.findById(id).map { Member(it.id.toString(), it.name) }
+        if (maybeMember.isEmpty)
+            throw MemberNotFoundException("Member with id = $id not found")
+        else
+            return maybeMember
     }
 
     fun deleteParticipant(id: Long) {
@@ -45,7 +52,8 @@ class SecretSantaService(
     }
 
     fun getAllGiftExchanges(): List<GiftExchange> {
-        return giftAssignmentRepository.findAll().map { GiftExchange(it.giver.name, it.receiver.name) }
+        return giftAssignmentRepository.findAll()
+            .map { GiftExchange(it.giver.id.toString(), it.receiver.id.toString()) }
     }
 
     @Transactional
@@ -54,7 +62,9 @@ class SecretSantaService(
 
         // Ensure at least two participants for the draw
         if (participants.size < 2) {
-            throw IllegalStateException("Not enough participants to draw names")
+            throw NotEnoughParticipantsException(
+                "Not enough participants to perform gift-exchange, please add more members!"
+            )
         }
 
         // Create a mutable list of receivers to ensure each participant gets only one gift
@@ -74,7 +84,9 @@ class SecretSantaService(
             val validReceivers = availableReceivers.filter { it != giver && !invalidReceivers.contains(it) }
 
             if (validReceivers.isEmpty()) {
-                throw IllegalStateException("Unable to assign a valid receiver for $giver")
+                throw NoValidReceiverFoundException(
+                    "Unable to assign a valid gift-recipient for member id=${giver.id}"
+                )
             }
 
             // Randomly pick a valid receiver

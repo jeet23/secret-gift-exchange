@@ -9,7 +9,6 @@ data class Participant(
     val id: Long? = null,
 
     val name: String,
-    val email: String? = null,
 
     @Version  // Enables optimistic locking
     val version: Int? = null

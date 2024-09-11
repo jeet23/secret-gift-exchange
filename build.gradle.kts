@@ -44,6 +44,8 @@ dependencies {
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
+	implementation("org.zalando:problem-spring-web-starter:0.27.0")
+
 	// Dependencies required for Fabrikt
 	implementation("com.squareup.okhttp3:okhttp:4.10.0")
 	implementation("io.github.resilience4j:resilience4j-circuitbreaker:1.7.1")
