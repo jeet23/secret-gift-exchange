@@ -29,7 +29,7 @@ class MembersTest {
     @Test
     fun `addParticipant should save a new participant`() {
         // Given
-        val participant = Participant(1L, "John Doe", "john@example.com")
+        val participant = Participant(1L, "John Doe")
         every { participantRepository.save(participant) } returns participant
 
         // When
@@ -43,8 +43,8 @@ class MembersTest {
     @Test
     fun `updateParticipant should update an existing participant`() {
         // Given
-        val participant = Participant(1L, "John Doe", "john@example.com")
-        val updatedParticipant = Participant(1L, "John Smith", "johnsmith@example.com")
+        val participant = Participant(1L, "John Doe")
+        val updatedParticipant = Participant(1L, "John Smith")
 
         every { participantRepository.findById(1L) } returns Optional.of(participant)
         every { participantRepository.save(updatedParticipant) } returns updatedParticipant
@@ -61,7 +61,7 @@ class MembersTest {
     @Test
     fun `updateParticipant should throw exception if participant does not exist`() {
         // Given
-        val updatedParticipant = Participant(1L, "John Smith", "johnsmith@example.com")
+        val updatedParticipant = Participant(1L, "John Smith")
 
         every { participantRepository.findById(1L) } returns Optional.empty()
 
@@ -77,8 +77,8 @@ class MembersTest {
     fun `getAllParticipants should return list of participants`() {
         // Given
         val participants = listOf(
-            Participant(1L, "John Doe", "john@example.com"),
-            Participant(2L, "Jane Doe", "jane@example.com")
+            Participant(1L, "John Doe"),
+            Participant(2L, "Jane Doe")
         )
 
         every { participantRepository.findAll() } returns participants
@@ -94,7 +94,7 @@ class MembersTest {
     @Test
     fun `getParticipant should return the participant if exists`() {
         // Given
-        val participant = Participant(1L, "John Doe", "john@example.com")
+        val participant = Participant(1L, "John Doe")
         every { participantRepository.findById(1L) } returns Optional.of(participant)
 
         // When
@@ -120,7 +120,7 @@ class MembersTest {
     @Test
     fun `deleteParticipant should delete the participant if exists`() {
         // Given
-        val participant = Participant(1L, "John Doe", "john@example.com")
+        val participant = Participant(1L, "John Doe")
         every { participantRepository.findById(1L) } returns Optional.of(participant)
         every { participantRepository.deleteById(1L) } just Runs
 

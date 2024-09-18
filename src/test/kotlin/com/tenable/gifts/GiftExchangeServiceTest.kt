@@ -36,9 +36,9 @@ class GiftExchangeServiceTest {
     @Test
     fun `should assign each participant exactly one gift`() {
         val participants = listOf(
-            Participant(1L, "Alice", "alice@example.com"),
-            Participant(2L, "Bob", "bob@example.com"),
-            Participant(3L, "Charlie", "charlie@example.com")
+            Participant(1L, "Alice"),
+            Participant(2L, "Bob"),
+            Participant(3L, "Charlie")
         )
 
         every { participantRepository.findAll() } returns participants
@@ -64,10 +64,10 @@ class GiftExchangeServiceTest {
     @Test
     fun `should not allow a participant to give to the same person within 3 years`() {
         val participants = listOf(
-            Participant(1L, "Alice", "alice@example.com"),
-            Participant(2L, "Bob", "bob@example.com"),
-            Participant(3L, "Charlie", "charlie@example.com"),
-            Participant(4L, "Tom", "tom@example.com")
+            Participant(1L, "Alice" ),
+            Participant(2L, "Bob"),
+            Participant(3L, "Charlie"),
+            Participant(4L, "Tom")
         )
 
         // Create an assignment such that Alice can't give to Bob
@@ -115,7 +115,7 @@ class GiftExchangeServiceTest {
 
     @Test
     fun `should throw exception if not enough participants`() {
-        val participants = listOf(Participant(1L, "Alice", "alice@example.com"))
+        val participants = listOf(Participant(1L, "Alice"))
 
         every { participantRepository.findAll() } returns participants
 
@@ -129,9 +129,9 @@ class GiftExchangeServiceTest {
     @Test
     fun `should throw exception if no valid receivers remain for a participant`() {
         val participants = listOf(
-            Participant(1L, "Alice", "alice@example.com"),
-            Participant(2L, "Bob", "bob@example.com"),
-            Participant(3L, "Charlie", "charlie@example.com")
+            Participant(1L, "Alice"),
+            Participant(2L, "Bob"),
+            Participant(3L, "Charlie")
         )
 
         // Simulate a scenario where everyone is blocked due to the 3-year rule
@@ -158,9 +158,9 @@ class GiftExchangeServiceTest {
     @Test
     fun `should save all gift assignments to the repository`() {
         val participants = listOf(
-            Participant(1L, "Alice", "alice@example.com"),
-            Participant(2L, "Bob", "bob@example.com"),
-            Participant(3L, "Charlie", "charlie@example.com")
+            Participant(1L, "Alice"),
+            Participant(2L, "Bob"),
+            Participant(3L, "Charlie")
         )
 
         every { participantRepository.findAll() } returns participants
